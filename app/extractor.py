@@ -1,12 +1,13 @@
 import io
 import re
-import pdfplumber
+
 import pandas as pd
+import pdfplumber
 import pytesseract
-from pdf2image import convert_from_bytes
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+from pdf2image import convert_from_bytes
 
 
 def is_scanned_pdf(pdf_bytes: bytes) -> bool:
@@ -154,7 +155,8 @@ def tables_to_excel(tables: list[dict]) -> bytes:
             len(df), len(df.columns), tbl["method"].upper()
         ])
         drow = summary_ws.max_row
-        fill = PatternFill("solid", start_color=ALT_COLOR) if i % 2 == 0 else PatternFill("solid", start_color="FFFFFF")
+        fill_color = ALT_COLOR if i % 2 == 0 else "FFFFFF"
+        fill = PatternFill("solid", start_color=fill_color)
         for col_idx in range(2, 8):
             cell = summary_ws.cell(row=drow, column=col_idx)
             cell.fill = fill
@@ -225,7 +227,9 @@ def _try_cast(value: str):
         return v
 
 
-def process_pdf(pdf_bytes: bytes, force_ocr: bool = False, lang: str = "fra+eng") -> tuple[list[dict], bytes]:
+def process_pdf(
+    pdf_bytes: bytes, force_ocr: bool = False, lang: str = "fra+eng"
+) -> tuple[list[dict], bytes]:
     """Main entry: detect PDF type, extract tables, return Excel bytes."""
     if force_ocr or is_scanned_pdf(pdf_bytes):
         tables = extract_tables_ocr(pdf_bytes, lang=lang)

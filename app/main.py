@@ -1,11 +1,9 @@
-import os
 import uuid
-import json
 from pathlib import Path
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+
 import uvicorn
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from app.extractor import process_pdf
 

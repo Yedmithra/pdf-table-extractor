@@ -1,6 +1,15 @@
 # 📊 PDF Table Extractor
 
-Application web pour extraire automatiquement les tableaux depuis des fichiers PDF (natifs ou scannés) et les exporter en Excel.
+[![CI](https://github.com/yedmithra/pdf-table-extractor/actions/workflows/ci.yml/badge.svg)](https://github.com/yedmithra/pdf-table-extractor/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?logo=fastapi)](https://fastapi.tiangolo.com/)
+
+Extrait automatiquement les tableaux de vos fichiers PDF (natifs ou scannés) et les exporte en Excel formaté — en un clic, sans configuration.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/yedmithra/pdf-table-extractor)
+
+![Interface PDF Table Extractor](.github/assets/screenshot.png)
 
 ## Fonctionnalités
 
@@ -11,9 +20,24 @@ Application web pour extraire automatiquement les tableaux depuis des fichiers P
 - **Interface web** moderne avec drag & drop
 - Support **Français + Anglais** (OCR multilingue)
 
-## Installation
+## Démarrage rapide
 
-### 1. Prérequis système
+### Avec Docker (recommandé)
+
+```bash
+docker build -t pdf-table-extractor .
+docker run -p 8000:8000 pdf-table-extractor
+```
+
+Ou avec `make` :
+
+```bash
+make docker-run
+```
+
+### Sans Docker
+
+#### 1. Prérequis système
 
 ```bash
 # Ubuntu/Debian
@@ -23,10 +47,10 @@ sudo apt install tesseract-ocr tesseract-ocr-fra poppler-utils -y
 brew install tesseract tesseract-lang poppler
 ```
 
-### 2. Environnement Python
+#### 2. Environnement Python
 
 ```bash
-git clone https://github.com/<votre-utilisateur>/pdf-table-extractor.git
+git clone https://github.com/yedmithra/pdf-table-extractor.git
 cd pdf-table-extractor
 python -m venv venv
 source venv/bin/activate       # Linux/macOS
@@ -41,7 +65,7 @@ Ou avec `make` (voir la section [Makefile](#makefile)) :
 make install
 ```
 
-### 3. Lancement
+#### 3. Lancement
 
 ```bash
 python -m app.main
@@ -68,7 +92,12 @@ pdf-table-extractor/
 │       └── index.html   # Interface web (drag & drop)
 ├── examples/
 │   └── exemple_extraction.xlsx
+├── .github/
+│   └── workflows/ci.yml # Lint + smoke test automatiques
+├── Dockerfile
+├── render.yaml           # Déploiement en un clic sur Render
 ├── requirements.txt
+├── requirements-dev.txt
 ├── Makefile
 ├── README.md
 └── LICENSE
@@ -80,8 +109,12 @@ pdf-table-extractor/
 |---|---|
 | `make system-deps` | Installe `tesseract-ocr`, `tesseract-ocr-fra`, `poppler-utils` (sudo apt) |
 | `make install` | Crée le venv et installe les dépendances Python |
+| `make install-dev` | Installe en plus les outils de dev (ruff) |
 | `make run` | Lance le serveur en production |
 | `make dev` | Lance le serveur avec rechargement automatique |
+| `make lint` | Vérifie le code avec ruff |
+| `make docker-build` | Construit l'image Docker |
+| `make docker-run` | Lance l'image Docker sur le port 8000 |
 | `make clean` | Supprime les caches Python |
 | `make distclean` | Supprime en plus le venv |
 
@@ -149,3 +182,20 @@ PDF reçu
 | `pytesseract` | OCR (reconnaissance de caractères) |
 | `openpyxl` | Génération fichiers Excel |
 | `pandas` | Manipulation des données tabulaires |
+
+## Contribuer
+
+Les contributions sont bienvenues ! Idées de premières issues :
+
+- Amélioration du clustering OCR (regroupement des lignes par position Y)
+- Support d'autres langues OCR
+- Détection de tableaux fusionnés (cellules merged)
+
+1. Forkez le projet
+2. Créez une branche (`git checkout -b feature/ma-fonctionnalite`)
+3. Lancez `make lint` avant de commiter
+4. Ouvrez une Pull Request
+
+## Licence
+
+[MIT](LICENSE)

@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: pdf-table-extractor
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8000
