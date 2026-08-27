@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PDF → Excel · Extracteur de Tableaux</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0B0E1A;
+    --surface: #111827;
+    --surface2: #1A2235;
+    --border: #1E2D45;
+    --accent: #3B82F6;
+    --accent2: #06B6D4;
+    --accent3: #8B5CF6;
+    --green: #10B981;
+    --red: #EF4444;
+    --text: #F1F5F9;
+    --muted: #64748B;
+    --card: #131C2E;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 10% 0%, rgba(59,130,246,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 90% 100%, rgba(139,92,246,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 50% 50%, rgba(6,182,212,0.04) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* Header */
+  header {
+    padding: 48px 0 32px;
+    display: flex; align-items: center; gap: 20px;
+  }
+  .logo {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 0 30px rgba(59,130,246,0.3);
+    flex-shrink: 0;
+  }
+  .header-text h1 {
+    font-size: 26px; font-weight: 700;
+    background: linear-gradient(90deg, var(--text) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .header-text p { color: var(--muted); font-size: 14px; margin-top: 2px; font-weight: 300; }
+
+  /* Badges */
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }
+  .badge {
+    padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    display: flex; align-items: center; gap: 5px; letter-spacing: 0.3px;
+  }
+  .badge-blue { background: rgba(59,130,246,0.12); color: #60A5FA; border: 1px solid rgba(59,130,246,0.2); }
+  .badge-cyan { background: rgba(6,182,212,0.12); color: #22D3EE; border: 1px solid rgba(6,182,212,0.2); }
+  .badge-purple { background: rgba(139,92,246,0.12); color: #A78BFA; border: 1px solid rgba(139,92,246,0.2); }
+  .badge-green { background: rgba(16,185,129,0.12); color: #34D399; border: 1px solid rgba(16,185,129,0.2); }
+
+  /* Drop zone */
+  .dropzone {
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: 20px;
+    padding: 52px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .dropzone::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(59,130,246,0.03), rgba(139,92,246,0.03));
+    opacity: 0; transition: opacity 0.25s;
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 0 40px rgba(59,130,246,0.1);
+  }
+  .dropzone:hover::before, .dropzone.dragover::before { opacity: 1; }
+
+  .drop-icon { font-size: 48px; margin-bottom: 16px; display: block; }
+  .drop-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .drop-sub { color: var(--muted); font-size: 14px; }
+  .drop-limit { color: var(--muted); font-size: 12px; margin-top: 8px; font-family: 'DM Mono', monospace; }
+
+  input[type="file"] { display: none; }
+
+  /* Selected file */
+  .file-selected {
+    display: none;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-top: 16px;
+    align-items: center; gap: 12px;
+  }
+  .file-selected.show { display: flex; }
+  .file-icon-sm {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: rgba(239,68,68,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .file-name { font-size: 14px; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-size { color: var(--muted); font-size: 12px; font-family: 'DM Mono', monospace; }
+  .file-remove { color: var(--muted); cursor: pointer; padding: 4px; border-radius: 6px; transition: color 0.2s; font-size: 18px; line-height: 1; background: none; border: none; }
+  .file-remove:hover { color: var(--red); }
+
+  /* Options */
+  .options-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-top: 20px;
+  }
+  .options-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 16px; }
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  
+  .option-item label { font-size: 13px; color: var(--muted); margin-bottom: 6px; display: block; }
+  .option-item select, .option-item input[type="checkbox"] { accent-color: var(--accent); }
+  select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 14px; font-family: 'DM Sans', sans-serif;
+    outline: none; cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  select:focus { border-color: var(--accent); }
+
+  .toggle-row {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 12px;
+  }
+  .toggle-label { font-size: 14px; flex: 1; }
+  .toggle { position: relative; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0;
+    background: var(--border); border-radius: 22px;
+    cursor: pointer; transition: 0.3s;
+  }
+  .slider::before {
+    content: ''; position: absolute;
+    width: 16px; height: 16px; left: 3px; bottom: 3px;
+    background: white; border-radius: 50%;
+    transition: 0.3s;
+  }
+  input:checked + .slider { background: var(--accent); }
+  input:checked + .slider::before { transform: translateX(18px); }
+
+  /* Extract button */
+  .btn-extract {
+    width: 100%; margin-top: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    color: white; border: none; border-radius: 14px;
+    font-size: 16px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; letter-spacing: 0.2px;
+    transition: all 0.2s ease;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 4px 20px rgba(59,130,246,0.25);
+  }
+  .btn-extract:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(59,130,246,0.35);
+  }
+  .btn-extract:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* Progress */
+  .progress-card {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-top: 20px;
+    text-align: center;
+  }
+  .progress-card.show { display: block; }
+  .progress-spinner {
+    width: 48px; height: 48px; margin: 0 auto 16px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .progress-text { font-size: 15px; color: var(--muted); margin-bottom: 8px; }
+  .progress-bar-wrap { background: var(--surface2); border-radius: 10px; height: 6px; overflow: hidden; margin-top: 16px; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 10px; animation: progress-anim 2s ease-in-out infinite; }
+  @keyframes progress-anim { 0% { width: 10%; } 60% { width: 80%; } 100% { width: 95%; } }
+
+  /* Result */
+  .result-card {
+    display: none;
+    background: var(--surface);
+    border: 1px solid rgba(16,185,129,0.3);
+    border-radius: 16px;
+    padding: 24px;
+    margin-top: 20px;
+  }
+  .result-card.show { display: block; }
+  .result-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .result-icon { font-size: 32px; }
+  .result-title { font-size: 17px; font-weight: 700; }
+  .result-sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+  .stats-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat-pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 16px;
+    display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 120px;
+  }
+  .stat-value { font-size: 22px; font-weight: 700; font-family: 'DM Mono', monospace; }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-blue { color: var(--accent); }
+  .stat-cyan { color: var(--accent2); }
+  .stat-purple { color: var(--accent3); }
+  .stat-green { color: var(--green); }
+
+  /* Tables list */
+  .tables-list { margin-bottom: 20px; }
+  .table-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .table-item-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: rgba(59,130,246,0.12);
+    display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+  }
+  .table-item-name { font-size: 14px; font-weight: 500; flex: 1; font-family: 'DM Mono', monospace; }
+  .table-item-meta { color: var(--muted); font-size: 12px; text-align: right; }
+
+  /* Download button */
+  .btn-download {
+    width: 100%;
+    padding: 14px;
+    background: var(--green);
+    color: white; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; letter-spacing: 0.2px;
+    transition: all 0.2s ease;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 4px 20px rgba(16,185,129,0.25);
+  }
+  .btn-download:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(16,185,129,0.35); }
+
+  .btn-reset {
+    width: 100%; margin-top: 10px;
+    padding: 11px;
+    background: none;
+    color: var(--muted); border: 1px solid var(--border); border-radius: 12px;
+    font-size: 14px; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-reset:hover { color: var(--text); border-color: var(--muted); }
+
+  /* Error */
+  .error-card {
+    display: none;
+    background: rgba(239,68,68,0.05);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-top: 20px;
+    display: flex; align-items: flex-start; gap: 14px;
+  }
+  .error-card.hide { display: none; }
+  .error-emoji { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+  .error-title { font-size: 15px; font-weight: 600; color: #FCA5A5; margin-bottom: 4px; }
+  .error-msg { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  /* Method badge */
+  .method-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 8px;
+  }
+  .method-digital { background: rgba(6,182,212,0.15); color: #22D3EE; }
+  .method-ocr { background: rgba(139,92,246,0.15); color: #A78BFA; }
+
+  /* Footer */
+  footer { padding: 40px 0 24px; text-align: center; color: var(--muted); font-size: 12px; }
+  footer span { color: var(--accent); }
+
+  @media (max-width: 600px) {
+    .options-grid { grid-template-columns: 1fr; }
+    .stats-row { flex-direction: column; }
+    header { flex-direction: column; text-align: center; gap: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">📊</div>
+    <div class="header-text">
+      <h1>PDF Table Extractor</h1>
+      <p>Extrait automatiquement les tableaux de vos PDFs et les convertit en Excel</p>
+    </div>
+  </header>
+
+  <div class="badges">
+    <span class="badge badge-blue">📄 PDF natif</span>
+    <span class="badge badge-purple">🔍 OCR Tesseract</span>
+    <span class="badge badge-cyan">📊 Export multi-feuilles</span>
+    <span class="badge badge-green">🇫🇷 Français &amp; Anglais</span>
+  </div>
+
+  <!-- Drop Zone -->
+  <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+    <input type="file" id="fileInput" accept=".pdf" />
+    <span class="drop-icon">📂</span>
+    <div class="drop-title">Glissez votre PDF ici</div>
+    <div class="drop-sub">ou cliquez pour parcourir vos fichiers</div>
+    <div class="drop-limit">PDF natif ou scanné · max 50 Mo</div>
+  </div>
+
+  <!-- Selected file -->
+  <div class="file-selected" id="fileSelected">
+    <div class="file-icon-sm">📄</div>
+    <div style="flex:1; min-width:0;">
+      <div class="file-name" id="fileName">document.pdf</div>
+      <div class="file-size" id="fileSize">0 Ko</div>
+    </div>
+    <button class="file-remove" onclick="resetFile()" title="Retirer">✕</button>
+  </div>
+
+  <!-- Options -->
+  <div class="options-card">
+    <div class="options-title">⚙️ Options d'extraction</div>
+    <div class="options-grid">
+      <div class="option-item">
+        <label>Langue OCR</label>
+        <select id="langSelect">
+          <option value="fra+eng">Français + Anglais</option>
+          <option value="fra">Français uniquement</option>
+          <option value="eng">Anglais uniquement</option>
+          <option value="fra+eng+ara">Français + Anglais + Arabe</option>
+        </select>
+      </div>
+      <div class="option-item">
+        <label>Mode</label>
+        <div class="toggle-row">
+          <span class="toggle-label">Forcer l'OCR</span>
+          <label class="toggle">
+            <input type="checkbox" id="forceOcr" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Extract button -->
+  <button class="btn-extract" id="btnExtract" onclick="extractTables()" disabled>
+    <span>⚡</span> Extraire les tableaux
+  </button>
+
+  <!-- Progress -->
+  <div class="progress-card" id="progressCard">
+    <div class="progress-spinner"></div>
+    <div class="progress-text" id="progressText">Analyse du PDF en cours…</div>
+    <div class="progress-bar-wrap"><div class="progress-bar"></div></div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-card hide" id="errorCard">
+    <div class="error-emoji">⚠️</div>
+    <div>
+      <div class="error-title">Erreur d'extraction</div>
+      <div class="error-msg" id="errorMsg"></div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-card" id="resultCard">
+    <div class="result-header">
+      <div class="result-icon">✅</div>
+      <div>
+        <div class="result-title">Extraction réussie <span class="method-badge" id="methodBadge"></span></div>
+        <div class="result-sub" id="resultSub"></div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-pill">
+        <span class="stat-value stat-blue" id="statTables">0</span>
+        <span class="stat-label">Tableaux</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-value stat-cyan" id="statPages">0</span>
+        <span class="stat-label">Pages</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-value stat-green" id="statSheets">0</span>
+        <span class="stat-label">Feuilles Excel</span>
+      </div>
+    </div>
+
+    <div class="tables-list" id="tablesList"></div>
+
+    <button class="btn-download" id="btnDownload">
+      <span>⬇️</span> Télécharger le fichier Excel
+    </button>
+    <button class="btn-reset" onclick="resetAll()">↩ Nouveau fichier</button>
+  </div>
+
+  <footer>Développé avec <span>FastAPI · pdfplumber · Tesseract OCR</span><br/>Extraction intelligente pour PDFs natifs &amp; scannés</footer>
+</div>
+
+<script>
+  let currentFile = null;
+  let currentJobId = null;
+
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+
+  // Drag & drop
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault(); dropzone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.toLowerCase().endsWith('.pdf')) setFile(file);
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) setFile(fileInput.files[0]);
+  });
+
+  function setFile(file) {
+    currentFile = file;
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = formatSize(file.size);
+    document.getElementById('fileSelected').classList.add('show');
+    document.getElementById('btnExtract').disabled = false;
+    hideResult(); hideError(); hideProgress();
+  }
+
+  function resetFile() {
+    currentFile = null; fileInput.value = '';
+    document.getElementById('fileSelected').classList.remove('show');
+    document.getElementById('btnExtract').disabled = true;
+    hideResult(); hideError(); hideProgress();
+  }
+
+  function resetAll() { resetFile(); }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' o';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' Ko';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' Mo';
+  }
+
+  async function extractTables() {
+    if (!currentFile) return;
+
+    showProgress('Envoi du fichier…');
+    hideResult(); hideError();
+    document.getElementById('btnExtract').disabled = true;
+
+    const formData = new FormData();
+    formData.append('file', currentFile);
+    formData.append('force_ocr', document.getElementById('forceOcr').checked);
+    formData.append('lang', document.getElementById('langSelect').value);
+
+    setTimeout(() => setProgressText('Détection du type de PDF…'), 800);
+    setTimeout(() => setProgressText('Extraction des tableaux…'), 2000);
+    setTimeout(() => setProgressText('Génération du fichier Excel…'), 4000);
+
+    try {
+      const res = await fetch('/extract', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      hideProgress();
+      document.getElementById('btnExtract').disabled = false;
+
+      if (!res.ok) {
+        showError(data.detail || 'Erreur inconnue.');
+        return;
+      }
+
+      currentJobId = data.job_id;
+      showResult(data);
+
+    } catch (err) {
+      hideProgress();
+      document.getElementById('btnExtract').disabled = false;
+      showError('Impossible de contacter le serveur. Vérifiez que l\'application est lancée.');
+    }
+  }
+
+  function showResult(data) {
+    document.getElementById('statTables').textContent = data.tables_found;
+    document.getElementById('statPages').textContent = data.pages.length;
+    document.getElementById('statSheets').textContent = data.tables_found + 1; // +1 for summary
+
+    const badge = document.getElementById('methodBadge');
+    badge.textContent = data.method === 'ocr' ? '🔍 OCR' : '📄 Digital';
+    badge.className = 'method-badge ' + (data.method === 'ocr' ? 'method-ocr' : 'method-digital');
+
+    document.getElementById('resultSub').textContent =
+      `Fichier : ${data.filename} · ${data.tables_found} tableau(x) sur ${data.pages.length} page(s)`;
+
+    const list = document.getElementById('tablesList');
+    list.innerHTML = data.details.map(t => `
+      <div class="table-item">
+        <div class="table-item-icon">📋</div>
+        <div class="table-item-name">${t.sheet}</div>
+        <div class="table-item-meta">${t.rows} lignes · ${t.cols} colonnes</div>
+      </div>
+    `).join('');
+
+    document.getElementById('btnDownload').onclick = () => {
+      window.location.href = '/download/' + currentJobId;
+    };
+
+    document.getElementById('resultCard').classList.add('show');
+  }
+
+  function showError(msg) {
+    document.getElementById('errorMsg').textContent = msg;
+    document.getElementById('errorCard').classList.remove('hide');
+  }
+
+  function hideError() { document.getElementById('errorCard').classList.add('hide'); }
+
+  function showProgress(msg) {
+    document.getElementById('progressText').textContent = msg;
+    document.getElementById('progressCard').classList.add('show');
+  }
+
+  function setProgressText(msg) {
+    if (document.getElementById('progressCard').classList.contains('show'))
+      document.getElementById('progressText').textContent = msg;
+  }
+
+  function hideProgress() { document.getElementById('progressCard').classList.remove('show'); }
+  function hideResult() { document.getElementById('resultCard').classList.remove('show'); }
+</script>
+</body>
+</html>
