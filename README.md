@@ -1,13 +1,16 @@
 # 📊 PDF Table Extractor
 
-[![CI](https://github.com/yedmithra/pdf-table-extractor/actions/workflows/ci.yml/badge.svg)](https://github.com/yedmithra/pdf-table-extractor/actions/workflows/ci.yml)
+[![CI](https://github.com/Yedmithra/pdf-table-extractor/actions/workflows/ci.yml/badge.svg)](https://github.com/Yedmithra/pdf-table-extractor/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?logo=fastapi)](https://fastapi.tiangolo.com/)
 
 Extrait automatiquement les tableaux de vos fichiers PDF (natifs ou scannés) et les exporte en Excel formaté — en un clic, sans configuration.
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/yedmithra/pdf-table-extractor)
+**🚀 [Essayer la démo en ligne](https://pdf-table-extractor-ut6w.onrender.com)** — sans installation
+*(l'instance gratuite se met en veille après inactivité ; le premier chargement peut prendre ~50s)*
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Yedmithra/pdf-table-extractor)
 
 ![Interface PDF Table Extractor](.github/assets/screenshot.png)
 
@@ -50,7 +53,7 @@ brew install tesseract tesseract-lang poppler
 #### 2. Environnement Python
 
 ```bash
-git clone https://github.com/yedmithra/pdf-table-extractor.git
+git clone https://github.com/Yedmithra/pdf-table-extractor.git
 cd pdf-table-extractor
 python -m venv venv
 source venv/bin/activate       # Linux/macOS
