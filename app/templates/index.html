@@ -2,353 +2,352 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>PDF → Excel · Extracteur de Tableaux</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PDF Table Extractor</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #0B0E1A;
-    --surface: #111827;
-    --surface2: #1A2235;
-    --border: #1E2D45;
-    --accent: #3B82F6;
-    --accent2: #06B6D4;
-    --accent3: #8B5CF6;
-    --green: #10B981;
-    --red: #EF4444;
-    --text: #F1F5F9;
-    --muted: #64748B;
-    --card: #131C2E;
+    --bg: #0c0d10;
+    --surface: #16171b;
+    --surface-2: #1e1f24;
+    --border: #2a2b31;
+    --text: #e7e7ea;
+    --muted: #8b8c95;
+    --accent: #3b6fe0;
+    --accent-hover: #315dbd;
+    --success: #2fa860;
+    --danger: #d9483f;
+    --radius: 8px;
+    --radius-lg: 12px;
   }
 
+  html { color-scheme: dark; }
+
   body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    overflow-x: hidden;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* Animated background */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background:
-      radial-gradient(ellipse 80% 60% at 10% 0%, rgba(59,130,246,0.08) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 90% 100%, rgba(139,92,246,0.07) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 40% at 50% 50%, rgba(6,182,212,0.04) 0%, transparent 60%);
-    pointer-events: none; z-index: 0;
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 20px;
   }
 
-  .container { max-width: 860px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+  code, .mono { font-family: 'IBM Plex Mono', monospace; }
 
   /* Header */
   header {
-    padding: 48px 0 32px;
-    display: flex; align-items: center; gap: 20px;
+    padding: 56px 0 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
   }
-  .logo {
-    width: 52px; height: 52px;
-    background: linear-gradient(135deg, var(--accent), var(--accent3));
-    border-radius: 14px;
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .brand-mark {
+    width: 30px; height: 30px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 24px;
-    box-shadow: 0 0 30px rgba(59,130,246,0.3);
+    color: var(--accent);
     flex-shrink: 0;
   }
-  .header-text h1 {
-    font-size: 26px; font-weight: 700;
-    background: linear-gradient(90deg, var(--text) 0%, var(--accent2) 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    letter-spacing: -0.5px;
+  .brand-mark svg { width: 16px; height: 16px; }
+  header h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.2px; }
+  header p { color: var(--muted); font-size: 14px; max-width: 46ch; }
+  .feature-list {
+    display: flex; flex-wrap: wrap; gap: 6px 18px;
+    margin-top: 18px;
+    font-size: 12.5px; color: var(--muted);
   }
-  .header-text p { color: var(--muted); font-size: 14px; margin-top: 2px; font-weight: 300; }
-
-  /* Badges */
-  .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }
-  .badge {
-    padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
-    display: flex; align-items: center; gap: 5px; letter-spacing: 0.3px;
-  }
-  .badge-blue { background: rgba(59,130,246,0.12); color: #60A5FA; border: 1px solid rgba(59,130,246,0.2); }
-  .badge-cyan { background: rgba(6,182,212,0.12); color: #22D3EE; border: 1px solid rgba(6,182,212,0.2); }
-  .badge-purple { background: rgba(139,92,246,0.12); color: #A78BFA; border: 1px solid rgba(139,92,246,0.2); }
-  .badge-green { background: rgba(16,185,129,0.12); color: #34D399; border: 1px solid rgba(16,185,129,0.2); }
+  .feature-list span { display: flex; align-items: center; gap: 6px; }
+  .feature-list svg { width: 13px; height: 13px; color: var(--accent); flex-shrink: 0; }
 
   /* Drop zone */
   .dropzone {
     background: var(--surface);
-    border: 2px dashed var(--border);
-    border-radius: 20px;
-    padding: 52px 32px;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-lg);
+    padding: 44px 24px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.25s ease;
-    position: relative;
-    overflow: hidden;
-  }
-  .dropzone::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(135deg, rgba(59,130,246,0.03), rgba(139,92,246,0.03));
-    opacity: 0; transition: opacity 0.25s;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
   }
   .dropzone:hover, .dropzone.dragover {
     border-color: var(--accent);
-    transform: translateY(-2px);
-    box-shadow: 0 0 40px rgba(59,130,246,0.1);
+    background: var(--surface-2);
   }
-  .dropzone:hover::before, .dropzone.dragover::before { opacity: 1; }
-
-  .drop-icon { font-size: 48px; margin-bottom: 16px; display: block; }
-  .drop-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-  .drop-sub { color: var(--muted); font-size: 14px; }
-  .drop-limit { color: var(--muted); font-size: 12px; margin-top: 8px; font-family: 'DM Mono', monospace; }
+  .drop-icon {
+    width: 34px; height: 34px;
+    margin: 0 auto 14px;
+    color: var(--muted);
+  }
+  .dropzone:hover .drop-icon, .dropzone.dragover .drop-icon { color: var(--accent); }
+  .drop-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .drop-sub { color: var(--muted); font-size: 13px; }
+  .drop-limit { color: var(--muted); font-size: 12px; margin-top: 10px; opacity: 0.7; }
 
   input[type="file"] { display: none; }
 
   /* Selected file */
   .file-selected {
     display: none;
-    background: var(--surface2);
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 18px;
-    margin-top: 16px;
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-top: 14px;
     align-items: center; gap: 12px;
   }
   .file-selected.show { display: flex; }
   .file-icon-sm {
-    width: 38px; height: 38px; border-radius: 10px;
-    background: rgba(239,68,68,0.12);
+    width: 32px; height: 32px; border-radius: var(--radius);
+    background: var(--surface-2);
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px; flex-shrink: 0;
+    color: var(--muted);
+    flex-shrink: 0;
   }
-  .file-name { font-size: 14px; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .file-size { color: var(--muted); font-size: 12px; font-family: 'DM Mono', monospace; }
-  .file-remove { color: var(--muted); cursor: pointer; padding: 4px; border-radius: 6px; transition: color 0.2s; font-size: 18px; line-height: 1; background: none; border: none; }
-  .file-remove:hover { color: var(--red); }
+  .file-icon-sm svg { width: 15px; height: 15px; }
+  .file-name { font-size: 13.5px; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-size { color: var(--muted); font-size: 12px; }
+  .file-remove {
+    color: var(--muted); cursor: pointer; padding: 6px; border-radius: 6px;
+    transition: color 0.15s, background-color 0.15s;
+    background: none; border: none; display: flex;
+  }
+  .file-remove svg { width: 15px; height: 15px; }
+  .file-remove:hover { color: var(--text); background: var(--surface-2); }
 
   /* Options */
   .options-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 20px 24px;
-    margin-top: 20px;
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    margin-top: 14px;
   }
-  .options-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 16px; }
-  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  
-  .option-item label { font-size: 13px; color: var(--muted); margin-bottom: 6px; display: block; }
-  .option-item select, .option-item input[type="checkbox"] { accent-color: var(--accent); }
+  .options-title {
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .options-title svg { width: 13px; height: 13px; }
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .option-item label { font-size: 12.5px; color: var(--muted); margin-bottom: 6px; display: block; }
   select {
     width: 100%;
-    background: var(--surface2);
+    background: var(--surface-2);
     border: 1px solid var(--border);
     color: var(--text);
-    padding: 9px 12px;
-    border-radius: 10px;
-    font-size: 14px; font-family: 'DM Sans', sans-serif;
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    font-size: 13.5px; font-family: 'Inter', sans-serif;
     outline: none; cursor: pointer;
-    transition: border-color 0.2s;
+    transition: border-color 0.15s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238b8c95' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 30px;
   }
   select:focus { border-color: var(--accent); }
 
   .toggle-row {
-    display: flex; align-items: center; gap: 10px;
-    background: var(--surface2);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 9px 12px;
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    height: 100%;
   }
-  .toggle-label { font-size: 14px; flex: 1; }
-  .toggle { position: relative; width: 40px; height: 22px; }
-  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-label { font-size: 13.5px; }
+  .toggle { position: relative; width: 34px; height: 19px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
   .slider {
     position: absolute; inset: 0;
-    background: var(--border); border-radius: 22px;
-    cursor: pointer; transition: 0.3s;
+    background: var(--border); border-radius: 20px;
+    cursor: pointer; transition: background-color 0.15s;
   }
   .slider::before {
     content: ''; position: absolute;
-    width: 16px; height: 16px; left: 3px; bottom: 3px;
-    background: white; border-radius: 50%;
-    transition: 0.3s;
+    width: 13px; height: 13px; left: 3px; top: 3px;
+    background: var(--text); border-radius: 50%;
+    transition: transform 0.15s;
   }
   input:checked + .slider { background: var(--accent); }
-  input:checked + .slider::before { transform: translateX(18px); }
+  input:checked + .slider::before { transform: translateX(15px); background: #fff; }
 
-  /* Extract button */
-  .btn-extract {
-    width: 100%; margin-top: 20px;
-    padding: 15px;
-    background: linear-gradient(135deg, var(--accent), var(--accent3));
-    color: white; border: none; border-radius: 14px;
-    font-size: 16px; font-weight: 600; font-family: 'DM Sans', sans-serif;
-    cursor: pointer; letter-spacing: 0.2px;
-    transition: all 0.2s ease;
+  /* Buttons */
+  .btn {
+    width: 100%;
+    padding: 11px;
+    border: none; border-radius: var(--radius);
+    font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif;
+    cursor: pointer;
     display: flex; align-items: center; justify-content: center; gap: 8px;
-    box-shadow: 0 4px 20px rgba(59,130,246,0.25);
+    transition: background-color 0.15s ease;
   }
-  .btn-extract:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(59,130,246,0.35);
+  .btn svg { width: 15px; height: 15px; }
+  .btn-primary { margin-top: 16px; background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { background: #278f52; }
+  .btn-ghost {
+    margin-top: 8px; background: none; color: var(--muted);
+    border: 1px solid var(--border);
   }
-  .btn-extract:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
 
   /* Progress */
   .progress-card {
     display: none;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 28px;
-    margin-top: 20px;
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-top: 14px;
     text-align: center;
   }
   .progress-card.show { display: block; }
   .progress-spinner {
-    width: 48px; height: 48px; margin: 0 auto 16px;
-    border: 3px solid var(--border);
+    width: 26px; height: 26px; margin: 0 auto 14px;
+    border: 2.5px solid var(--border);
     border-top-color: var(--accent);
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    animation: spin 0.7s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .progress-text { font-size: 15px; color: var(--muted); margin-bottom: 8px; }
-  .progress-bar-wrap { background: var(--surface2); border-radius: 10px; height: 6px; overflow: hidden; margin-top: 16px; }
-  .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 10px; animation: progress-anim 2s ease-in-out infinite; }
-  @keyframes progress-anim { 0% { width: 10%; } 60% { width: 80%; } 100% { width: 95%; } }
+  .progress-text { font-size: 13.5px; color: var(--muted); }
+  .progress-bar-wrap { background: var(--surface-2); border-radius: 10px; height: 4px; overflow: hidden; margin-top: 16px; }
+  .progress-bar { height: 100%; background: var(--accent); border-radius: 10px; animation: progress-anim 2s ease-in-out infinite; }
+  @keyframes progress-anim { 0% { width: 8%; } 60% { width: 75%; } 100% { width: 92%; } }
 
   /* Result */
   .result-card {
     display: none;
     background: var(--surface);
-    border: 1px solid rgba(16,185,129,0.3);
-    border-radius: 16px;
-    padding: 24px;
-    margin-top: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    margin-top: 14px;
   }
   .result-card.show { display: block; }
-  .result-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-  .result-icon { font-size: 32px; }
-  .result-title { font-size: 17px; font-weight: 700; }
-  .result-sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
-
-  .stats-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-  .stat-pill {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 16px;
-    display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 120px;
+  .result-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+  .result-icon {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(47, 168, 96, 0.12); color: var(--success);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
-  .stat-value { font-size: 22px; font-weight: 700; font-family: 'DM Mono', monospace; }
-  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
-  .stat-blue { color: var(--accent); }
-  .stat-cyan { color: var(--accent2); }
-  .stat-purple { color: var(--accent3); }
-  .stat-green { color: var(--green); }
+  .result-icon svg { width: 15px; height: 15px; }
+  .result-title { font-size: 14.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .result-sub { color: var(--muted); font-size: 13px; margin-top: 3px; }
+
+  .stats-row { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+  .stat-pill {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 100px;
+  }
+  .stat-value { font-size: 19px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
+  .stat-label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
 
   /* Tables list */
-  .tables-list { margin-bottom: 20px; }
+  .tables-list { margin-bottom: 18px; display: flex; flex-direction: column; gap: 6px; }
   .table-item {
-    background: var(--surface2);
+    background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 16px;
-    margin-bottom: 8px;
-    display: flex; align-items: center; gap: 12px;
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
   }
   .table-item-icon {
-    width: 34px; height: 34px; border-radius: 8px;
-    background: rgba(59,130,246,0.12);
-    display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+    width: 26px; height: 26px; border-radius: 6px;
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    color: var(--muted);
   }
-  .table-item-name { font-size: 14px; font-weight: 500; flex: 1; font-family: 'DM Mono', monospace; }
-  .table-item-meta { color: var(--muted); font-size: 12px; text-align: right; }
-
-  /* Download button */
-  .btn-download {
-    width: 100%;
-    padding: 14px;
-    background: var(--green);
-    color: white; border: none; border-radius: 12px;
-    font-size: 15px; font-weight: 600; font-family: 'DM Sans', sans-serif;
-    cursor: pointer; letter-spacing: 0.2px;
-    transition: all 0.2s ease;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    box-shadow: 0 4px 20px rgba(16,185,129,0.25);
-  }
-  .btn-download:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(16,185,129,0.35); }
-
-  .btn-reset {
-    width: 100%; margin-top: 10px;
-    padding: 11px;
-    background: none;
-    color: var(--muted); border: 1px solid var(--border); border-radius: 12px;
-    font-size: 14px; font-family: 'DM Sans', sans-serif;
-    cursor: pointer; transition: all 0.2s;
-  }
-  .btn-reset:hover { color: var(--text); border-color: var(--muted); }
+  .table-item-icon svg { width: 13px; height: 13px; }
+  .table-item-name { font-size: 13px; font-weight: 500; flex: 1; font-family: 'IBM Plex Mono', monospace; }
+  .table-item-meta { color: var(--muted); font-size: 11.5px; text-align: right; white-space: nowrap; }
 
   /* Error */
   .error-card {
     display: none;
-    background: rgba(239,68,68,0.05);
-    border: 1px solid rgba(239,68,68,0.25);
-    border-radius: 14px;
-    padding: 20px 24px;
-    margin-top: 20px;
-    display: flex; align-items: flex-start; gap: 14px;
+    background: rgba(217, 72, 63, 0.06);
+    border: 1px solid rgba(217, 72, 63, 0.25);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    margin-top: 14px;
+    align-items: flex-start; gap: 12px;
   }
-  .error-card.hide { display: none; }
-  .error-emoji { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
-  .error-title { font-size: 15px; font-weight: 600; color: #FCA5A5; margin-bottom: 4px; }
-  .error-msg { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .error-card.show { display: flex; }
+  .error-icon { color: var(--danger); flex-shrink: 0; margin-top: 1px; }
+  .error-icon svg { width: 17px; height: 17px; }
+  .error-title { font-size: 13.5px; font-weight: 600; color: #ec7a72; margin-bottom: 3px; }
+  .error-msg { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
 
   /* Method badge */
   .method-badge {
-    display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 8px;
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: 20px;
+    font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px;
+    background: var(--surface-2); color: var(--muted);
+    border: 1px solid var(--border);
   }
-  .method-digital { background: rgba(6,182,212,0.15); color: #22D3EE; }
-  .method-ocr { background: rgba(139,92,246,0.15); color: #A78BFA; }
 
   /* Footer */
-  footer { padding: 40px 0 24px; text-align: center; color: var(--muted); font-size: 12px; }
-  footer span { color: var(--accent); }
+  footer {
+    padding: 36px 0 40px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+  footer a:hover { color: var(--text); }
 
-  @media (max-width: 600px) {
+  @media (max-width: 560px) {
     .options-grid { grid-template-columns: 1fr; }
-    .stats-row { flex-direction: column; }
-    header { flex-direction: column; text-align: center; gap: 14px; }
+    header { padding: 40px 0 28px; }
+    .dropzone { padding: 34px 18px; }
   }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <div class="logo">📊</div>
-    <div class="header-text">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </div>
       <h1>PDF Table Extractor</h1>
-      <p>Extrait automatiquement les tableaux de vos PDFs et les convertit en Excel</p>
+    </div>
+    <p>Extrait automatiquement les tableaux de vos PDF (natifs ou scannés) et les exporte en Excel formaté.</p>
+    <div class="feature-list">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>PDF natif</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>OCR Tesseract</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Export multi-feuilles</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Français &amp; Anglais</span>
     </div>
   </header>
-
-  <div class="badges">
-    <span class="badge badge-blue">📄 PDF natif</span>
-    <span class="badge badge-purple">🔍 OCR Tesseract</span>
-    <span class="badge badge-cyan">📊 Export multi-feuilles</span>
-    <span class="badge badge-green">🇫🇷 Français &amp; Anglais</span>
-  </div>
 
   <!-- Drop Zone -->
   <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
     <input type="file" id="fileInput" accept=".pdf" />
-    <span class="drop-icon">📂</span>
+    <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
     <div class="drop-title">Glissez votre PDF ici</div>
     <div class="drop-sub">ou cliquez pour parcourir vos fichiers</div>
     <div class="drop-limit">PDF natif ou scanné · max 50 Mo</div>
@@ -356,20 +355,27 @@
 
   <!-- Selected file -->
   <div class="file-selected" id="fileSelected">
-    <div class="file-icon-sm">📄</div>
+    <div class="file-icon-sm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    </div>
     <div style="flex:1; min-width:0;">
       <div class="file-name" id="fileName">document.pdf</div>
       <div class="file-size" id="fileSize">0 Ko</div>
     </div>
-    <button class="file-remove" onclick="resetFile()" title="Retirer">✕</button>
+    <button class="file-remove" onclick="resetFile()" title="Retirer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
   </div>
 
   <!-- Options -->
   <div class="options-card">
-    <div class="options-title">⚙️ Options d'extraction</div>
+    <div class="options-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Options d'extraction
+    </div>
     <div class="options-grid">
       <div class="option-item">
-        <label>Langue OCR</label>
+        <label for="langSelect">Langue OCR</label>
         <select id="langSelect">
           <option value="fra+eng">Français + Anglais</option>
           <option value="fra">Français uniquement</option>
@@ -378,7 +384,7 @@
         </select>
       </div>
       <div class="option-item">
-        <label>Mode</label>
+        <label for="forceOcr">Mode</label>
         <div class="toggle-row">
           <span class="toggle-label">Forcer l'OCR</span>
           <label class="toggle">
@@ -391,8 +397,9 @@
   </div>
 
   <!-- Extract button -->
-  <button class="btn-extract" id="btnExtract" onclick="extractTables()" disabled>
-    <span>⚡</span> Extraire les tableaux
+  <button class="btn btn-primary" id="btnExtract" onclick="extractTables()" disabled>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    Extraire les tableaux
   </button>
 
   <!-- Progress -->
@@ -403,8 +410,10 @@
   </div>
 
   <!-- Error -->
-  <div class="error-card hide" id="errorCard">
-    <div class="error-emoji">⚠️</div>
+  <div class="error-card" id="errorCard">
+    <div class="error-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
     <div>
       <div class="error-title">Erreur d'extraction</div>
       <div class="error-msg" id="errorMsg"></div>
@@ -414,7 +423,9 @@
   <!-- Result -->
   <div class="result-card" id="resultCard">
     <div class="result-header">
-      <div class="result-icon">✅</div>
+      <div class="result-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
       <div>
         <div class="result-title">Extraction réussie <span class="method-badge" id="methodBadge"></span></div>
         <div class="result-sub" id="resultSub"></div>
@@ -423,28 +434,29 @@
 
     <div class="stats-row">
       <div class="stat-pill">
-        <span class="stat-value stat-blue" id="statTables">0</span>
+        <span class="stat-value" id="statTables">0</span>
         <span class="stat-label">Tableaux</span>
       </div>
       <div class="stat-pill">
-        <span class="stat-value stat-cyan" id="statPages">0</span>
+        <span class="stat-value" id="statPages">0</span>
         <span class="stat-label">Pages</span>
       </div>
       <div class="stat-pill">
-        <span class="stat-value stat-green" id="statSheets">0</span>
+        <span class="stat-value" id="statSheets">0</span>
         <span class="stat-label">Feuilles Excel</span>
       </div>
     </div>
 
     <div class="tables-list" id="tablesList"></div>
 
-    <button class="btn-download" id="btnDownload">
-      <span>⬇️</span> Télécharger le fichier Excel
+    <button class="btn btn-success" id="btnDownload">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Télécharger le fichier Excel
     </button>
-    <button class="btn-reset" onclick="resetAll()">↩ Nouveau fichier</button>
+    <button class="btn btn-ghost" onclick="resetAll()">Nouveau fichier</button>
   </div>
 
-  <footer>Développé avec <span>FastAPI · pdfplumber · Tesseract OCR</span><br/>Extraction intelligente pour PDFs natifs &amp; scannés</footer>
+  <footer>Développé avec <a href="https://fastapi.tiangolo.com/" target="_blank" rel="noopener">FastAPI</a>, <a href="https://github.com/jsvine/pdfplumber" target="_blank" rel="noopener">pdfplumber</a> et <a href="https://github.com/tesseract-ocr/tesseract" target="_blank" rel="noopener">Tesseract OCR</a></footer>
 </div>
 
 <script>
@@ -454,7 +466,6 @@
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('fileInput');
 
-  // Drag & drop
   dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
   dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
   dropzone.addEventListener('drop', e => {
@@ -525,26 +536,27 @@
     } catch (err) {
       hideProgress();
       document.getElementById('btnExtract').disabled = false;
-      showError('Impossible de contacter le serveur. Vérifiez que l\'application est lancée.');
+      showError("Impossible de contacter le serveur. Vérifiez que l'application est lancée.");
     }
   }
 
   function showResult(data) {
     document.getElementById('statTables').textContent = data.tables_found;
     document.getElementById('statPages').textContent = data.pages.length;
-    document.getElementById('statSheets').textContent = data.tables_found + 1; // +1 for summary
+    document.getElementById('statSheets').textContent = data.tables_found + 1;
 
     const badge = document.getElementById('methodBadge');
-    badge.textContent = data.method === 'ocr' ? '🔍 OCR' : '📄 Digital';
-    badge.className = 'method-badge ' + (data.method === 'ocr' ? 'method-ocr' : 'method-digital');
+    badge.textContent = data.method === 'ocr' ? 'OCR' : 'Digital';
 
     document.getElementById('resultSub').textContent =
       `Fichier : ${data.filename} · ${data.tables_found} tableau(x) sur ${data.pages.length} page(s)`;
 
+    const tableIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>';
+
     const list = document.getElementById('tablesList');
     list.innerHTML = data.details.map(t => `
       <div class="table-item">
-        <div class="table-item-icon">📋</div>
+        <div class="table-item-icon">${tableIcon}</div>
         <div class="table-item-name">${t.sheet}</div>
         <div class="table-item-meta">${t.rows} lignes · ${t.cols} colonnes</div>
       </div>
@@ -559,10 +571,10 @@
 
   function showError(msg) {
     document.getElementById('errorMsg').textContent = msg;
-    document.getElementById('errorCard').classList.remove('hide');
+    document.getElementById('errorCard').classList.add('show');
   }
 
-  function hideError() { document.getElementById('errorCard').classList.add('hide'); }
+  function hideError() { document.getElementById('errorCard').classList.remove('show'); }
 
   function showProgress(msg) {
     document.getElementById('progressText').textContent = msg;
