@@ -1,6 +1,7 @@
 import io
 import re
 
+import numpy as np
 import pandas as pd
 import pdfplumber
 import pytesseract
@@ -8,6 +9,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from pdf2image import convert_from_bytes
+from PIL import Image
 
 
 def is_scanned_pdf(pdf_bytes: bytes) -> bool:
@@ -60,6 +62,77 @@ def extract_tables_digital(pdf_bytes: bytes) -> list[dict]:
 
 
 MAX_OCR_PAGES = 30
+DESKEW_MAX_ANGLE = 3.0
+DESKEW_ANGLE_STEP = 0.2
+ROW_OVERLAP_THRESHOLD = 0.35
+
+
+def _deskew(image: Image.Image) -> Image.Image:
+    """Correct slight page rotation before OCR.
+
+    Even a fraction of a degree of tilt drifts word bounding boxes
+    sideways across the width of a page, which throws off any
+    row-clustering step downstream. Estimates the angle via the
+    classic projection-profile method (the rotation that makes rows
+    of text pack into the sharpest horizontal bands has the highest
+    variance in per-row pixel-density) rather than pulling in OpenCV
+    for a single-purpose check.
+    """
+    gray = image.convert("L")
+    scale = 1000 / gray.width if gray.width > 1000 else 1.0
+    small = gray.resize((max(1, int(gray.width * scale)), max(1, int(gray.height * scale))))
+    binary = (np.array(small) < 128).astype(np.uint8) * 255
+    probe = Image.fromarray(binary)
+
+    best_angle, best_score = 0.0, -1.0
+    angle = -DESKEW_MAX_ANGLE
+    while angle <= DESKEW_MAX_ANGLE:
+        rotated = probe.rotate(angle, expand=False, fillcolor=0)
+        row_density = np.array(rotated).sum(axis=1)
+        score = row_density.var()
+        if score > best_score:
+            best_score, best_angle = score, angle
+        angle += DESKEW_ANGLE_STEP
+
+    if abs(best_angle) < 0.1:
+        return image
+    return image.rotate(best_angle, expand=True, fillcolor="white", resample=Image.BICUBIC)
+
+
+def _cluster_rows_by_overlap(data: pd.DataFrame) -> list[list[str]]:
+    """Group OCR words into table rows by vertical bounding-box overlap.
+
+    A fixed pixel bucket (e.g. floor(top / 15)) breaks as soon as font
+    sizes differ between header and body rows, or a word's box
+    straddles a bucket boundary. Instead, each word joins the existing
+    row whose vertical span it overlaps most, provided that overlap
+    covers at least ROW_OVERLAP_THRESHOLD of the shorter of the two
+    boxes' heights; otherwise it starts a new row.
+    """
+    rows: list[dict] = []
+    for word in data.sort_values("top").to_dict("records"):
+        w_top, w_bottom = word["top"], word["top"] + word["height"]
+        best_row, best_ratio = None, 0.0
+        for row in rows:
+            intersection = min(w_bottom, row["bottom"]) - max(w_top, row["top"])
+            min_height = min(w_bottom - w_top, row["bottom"] - row["top"])
+            if min_height <= 0:
+                continue
+            ratio = intersection / min_height
+            if ratio >= ROW_OVERLAP_THRESHOLD and ratio > best_ratio:
+                best_row, best_ratio = row, ratio
+
+        if best_row is not None:
+            best_row["words"].append(word)
+            best_row["top"] = min(best_row["top"], w_top)
+            best_row["bottom"] = max(best_row["bottom"], w_bottom)
+        else:
+            rows.append({"top": w_top, "bottom": w_bottom, "words": [word]})
+
+    rows.sort(key=lambda r: r["top"])
+    return [
+        [w["text"] for w in sorted(row["words"], key=lambda w: w["left"])] for row in rows
+    ]
 
 
 def extract_tables_ocr(pdf_bytes: bytes, lang: str = "fra+eng") -> list[dict]:
@@ -68,6 +141,8 @@ def extract_tables_ocr(pdf_bytes: bytes, lang: str = "fra+eng") -> list[dict]:
     images = convert_from_bytes(pdf_bytes, dpi=300, last_page=MAX_OCR_PAGES)
 
     for page_num, image in enumerate(images, 1):
+        image = _deskew(image)
+
         # Get detailed OCR data with bounding boxes
         data = pytesseract.image_to_data(
             image, lang=lang, output_type=pytesseract.Output.DATAFRAME
@@ -80,15 +155,7 @@ def extract_tables_ocr(pdf_bytes: bytes, lang: str = "fra+eng") -> list[dict]:
         if data.empty:
             continue
 
-        # Cluster words into rows based on top position
-        data["top_group"] = (data["top"] // 15) * 15
-        rows_grouped = data.groupby("top_group")
-
-        table_rows = []
-        for _, row_data in rows_grouped:
-            row_data = row_data.sort_values("left")
-            words = row_data["text"].tolist()
-            table_rows.append(words)
+        table_rows = _cluster_rows_by_overlap(data)
 
         if len(table_rows) < 2:
             continue
