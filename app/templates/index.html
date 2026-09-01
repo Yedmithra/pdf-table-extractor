@@ -324,9 +324,110 @@
     header { padding: 40px 0 28px; }
     .dropzone { padding: 34px 18px; }
   }
+
+  /* Help button */
+  .help-btn {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: none; color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+    margin-left: auto;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .help-btn svg { width: 13px; height: 13px; }
+  .help-btn:hover { color: var(--text); border-color: var(--muted); }
+
+  /* Intro modal */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    align-items: center; justify-content: center;
+    padding: 20px;
+    z-index: 100;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    max-width: 440px;
+    width: 100%;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+  }
+  .modal-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+  .modal-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: var(--surface-2); color: var(--accent);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .modal-icon svg { width: 17px; height: 17px; }
+  .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+  .modal-sub { color: var(--muted); font-size: 13px; }
+  .modal-steps { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+  .modal-step { display: flex; gap: 12px; align-items: flex-start; }
+  .modal-step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--muted); font-size: 11.5px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .modal-step-text { font-size: 13.5px; line-height: 1.5; }
+  .modal-step-text strong { font-weight: 600; }
+  .modal-note {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    margin-bottom: 20px;
+    font-size: 12.5px; color: var(--muted); line-height: 1.5;
+  }
+  .modal-note svg { width: 14px; height: 14px; color: var(--accent); flex-shrink: 0; margin-top: 1px; }
 </style>
 </head>
 <body>
+<div class="modal-overlay" id="introModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </div>
+      <div>
+        <div class="modal-title">Comment ça marche</div>
+        <div class="modal-sub">PDF Table Extractor en trois étapes</div>
+      </div>
+    </div>
+
+    <div class="modal-steps">
+      <div class="modal-step">
+        <div class="modal-step-num">1</div>
+        <div class="modal-step-text">Déposez un PDF <strong>natif ou scanné</strong> — l'outil détecte automatiquement de quel type il s'agit.</div>
+      </div>
+      <div class="modal-step">
+        <div class="modal-step-num">2</div>
+        <div class="modal-step-text">Selon le cas, il extrait les tableaux directement (<strong>pdfplumber</strong>) ou lit l'image par reconnaissance de caractères (<strong>OCR Tesseract</strong>).</div>
+      </div>
+      <div class="modal-step">
+        <div class="modal-step-num">3</div>
+        <div class="modal-step-text">Vous récupérez un fichier <strong>Excel formaté</strong>, une feuille par tableau, avec une feuille de résumé.</div>
+      </div>
+    </div>
+
+    <div class="modal-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Vos fichiers ne sont jamais partagés ni analysés à d'autres fins : l'Excel généré est supprimé automatiquement du serveur après 1 heure.
+    </div>
+
+    <button class="btn btn-primary" id="introCloseBtn" style="margin-top:0;">Compris, commencer</button>
+  </div>
+</div>
+
 <div class="container">
   <header>
     <div class="brand">
@@ -334,6 +435,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
       </div>
       <h1>PDF Table Extractor</h1>
+      <button class="help-btn" id="helpBtn" title="Comment ça marche ?">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </button>
     </div>
     <p>Extrait automatiquement les tableaux de vos PDF (natifs ou scannés) et les exporte en Excel formaté.</p>
     <div class="feature-list">
@@ -465,6 +569,27 @@
 
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('fileInput');
+
+  // Intro modal
+  const INTRO_SEEN_KEY = 'pdf-table-extractor:intro-seen';
+  const introModal = document.getElementById('introModal');
+
+  function showIntro() { introModal.classList.add('show'); }
+  function hideIntro() {
+    introModal.classList.remove('show');
+    try { localStorage.setItem(INTRO_SEEN_KEY, '1'); } catch (e) {}
+  }
+
+  let hasSeenIntro = false;
+  try { hasSeenIntro = localStorage.getItem(INTRO_SEEN_KEY) === '1'; } catch (e) {}
+  if (!hasSeenIntro) showIntro();
+
+  document.getElementById('introCloseBtn').addEventListener('click', hideIntro);
+  document.getElementById('helpBtn').addEventListener('click', showIntro);
+  introModal.addEventListener('click', e => { if (e.target === introModal) hideIntro(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && introModal.classList.contains('show')) hideIntro();
+  });
 
   dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
   dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
