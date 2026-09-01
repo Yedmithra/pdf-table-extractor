@@ -27,3 +27,6 @@ jobs:
 
       - name: Smoke test (app import)
         run: python -c "from app.main import app"
+
+      - name: Dependency vulnerability scan (pip-audit)
+        run: pip install pip-audit && pip-audit -r requirements.txt

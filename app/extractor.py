@@ -59,10 +59,13 @@ def extract_tables_digital(pdf_bytes: bytes) -> list[dict]:
     return results
 
 
+MAX_OCR_PAGES = 30
+
+
 def extract_tables_ocr(pdf_bytes: bytes, lang: str = "fra+eng") -> list[dict]:
     """Extract tables from a scanned PDF using OCR + heuristics."""
     results = []
-    images = convert_from_bytes(pdf_bytes, dpi=300)
+    images = convert_from_bytes(pdf_bytes, dpi=300, last_page=MAX_OCR_PAGES)
 
     for page_num, image in enumerate(images, 1):
         # Get detailed OCR data with bounding boxes
@@ -71,6 +74,7 @@ def extract_tables_ocr(pdf_bytes: bytes, lang: str = "fra+eng") -> list[dict]:
         )
         data = data[data.conf > 30].copy()
         data.dropna(subset=["text"], inplace=True)
+        data["text"] = data["text"].astype(str)
         data = data[data["text"].str.strip() != ""]
 
         if data.empty:
