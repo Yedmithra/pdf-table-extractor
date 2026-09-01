@@ -177,7 +177,7 @@ def tables_to_excel(tables: list[dict]) -> bytes:
         # Write header row
         header_row = data[0]
         for col_idx, val in enumerate(header_row, 1):
-            cell = ws.cell(row=1, column=col_idx, value=val)
+            cell = ws.cell(row=1, column=col_idx, value=_sanitize_for_excel(val))
             cell.font = Font(name="Calibri", bold=True, color="FFFFFF", size=10)
             cell.fill = PatternFill("solid", start_color=HEADER_COLOR)
             cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -214,6 +214,21 @@ def tables_to_excel(tables: list[dict]) -> bytes:
     return output.getvalue()
 
 
+_FORMULA_TRIGGER_CHARS = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _sanitize_for_excel(value):
+    """Neutralize values that Excel would interpret as a formula.
+
+    A cell value coming from an untrusted PDF that starts with one of
+    these characters would otherwise be written by openpyxl as a live
+    formula, executing when the file is opened (CWE-1236).
+    """
+    if isinstance(value, str) and value.startswith(_FORMULA_TRIGGER_CHARS):
+        return "'" + value
+    return value
+
+
 def _try_cast(value: str):
     """Try to convert string to int or float."""
     v = str(value).strip()
@@ -224,7 +239,7 @@ def _try_cast(value: str):
             return float(cleaned)
         return int(cleaned)
     except Exception:
-        return v
+        return _sanitize_for_excel(v)
 
 
 def process_pdf(

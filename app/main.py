@@ -1,3 +1,5 @@
+import logging
+import time
 import uuid
 from pathlib import Path
 
@@ -7,10 +9,29 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from app.extractor import process_pdf
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="PDF Table Extractor")
 
 UPLOAD_DIR = Path("/tmp/pdf_extractor")
 UPLOAD_DIR.mkdir(exist_ok=True)
+
+FILE_TTL_SECONDS = 3600  # generated Excel files older than this are purged
+
+
+def _cleanup_old_files():
+    """Delete generated Excel files past their retention window.
+
+    Extracted tables can contain sensitive data from the source PDF;
+    files are not meant to live on disk indefinitely.
+    """
+    cutoff = time.time() - FILE_TTL_SECONDS
+    for path in UPLOAD_DIR.glob("*.xlsx"):
+        try:
+            if path.stat().st_mtime < cutoff:
+                path.unlink()
+        except OSError:
+            pass
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -34,11 +55,17 @@ async def extract_tables(
 
     try:
         tables, excel_bytes = process_pdf(pdf_bytes, force_ocr=force_ocr, lang=lang)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur d'extraction : {str(e)}")
+    except Exception:
+        logger.exception("Extraction failed for file %r", file.filename)
+        raise HTTPException(
+            status_code=500,
+            detail="Une erreur est survenue lors de l'extraction du PDF.",
+        ) from None
 
     if not tables:
         raise HTTPException(status_code=422, detail="Aucun tableau détecté dans ce PDF.")
+
+    _cleanup_old_files()
 
     # Save Excel output
     job_id = str(uuid.uuid4())
